@@ -1,0 +1,85 @@
+Sub ecd_bp()
+Dim ws As Worksheet
+Dim ws2 As Worksheet
+Set ws = ActiveWorkbook.Sheets("BP")
+Set ws2 = ActiveWorkbook.Sheets("ECD")
+Dim ultimaLinha As Long
+Dim i As Long
+ Dim txt As String
+Dim comAcento As String
+Dim semAcento As String
+Dim j As Long
+
+comAcento = "áàãâäéèêëíìîïóòõôöúùûüçÁÀÃÂÄÉÈÊËÍÌÎÏÓÒÕÔÖÚÙÛÜÇ"
+semAcento = "aaaaaeeeeiiiiooooouuuucAAAAAEEEEIIIIOOOOOUUUUC"
+
+
+
+'Transformar texto para colunas
+If ws2.Range("A1") <> 0 Then
+With ws2.Range("A1:A100")
+    .TextToColumns _
+        Destination:=ws2.Range("A1"), _
+        DataType:=xlDelimited, _
+        Other:=True, _
+        OtherChar:="|"
+End With
+End If
+
+
+
+'Trazer as informações da ECD para a outra guia
+ultimaLinha = ws.Cells(ws.Rows.Count, "A").End(xlUp).Row - 2
+With ws
+.Columns("A").Insert
+.Range("J1").Value = "ECD"
+.Range("K1").Value = "Dif"
+End With
+
+For i = 2 To ultimaLinha
+
+    txt = ws.Cells(i, "D").Value & ""
+    txt = ReplaceAcentos(txt, comAcento, semAcento)
+    ws.Cells(i, "D").Value = txt
+    ws.Cells(i, "A").Formula = "=IF(LEN(B" & i & ")>10,""Analítica"",""Sintética"")"
+    If ws.Cells(i, "A").Value = "Analítica" Then
+        ws.Cells(i, "J").Formula = "=XLOOKUP(D" & i & ",ECD!H:H,ECD!K:K)"
+        ws.Cells(i, "K").Formula = "=I" & i & " - J" & i
+    End If
+    If ws.Cells(i, "I").Value < 0 Then
+        ws.Cells(i, "I").Value = ws.Cells(i, "I").Value * -1
+    End If
+    
+Next i
+ 
+For i = 2 To ultimaLinha
+    If IsError(ws.Cells(i, "K").Value) Then
+        ws.Rows(i).Interior.Color = RGB(255, 192, 0)
+    ElseIf ws.Cells(i, "K").Value <> 0 Then
+        ws.Rows(i).Interior.Color = RGB(255, 192, 0)
+    End If
+Next i
+
+ws.Range("A1:K1").AutoFilter
+
+'Congelar a linha 1
+ws.activate
+ws.Rows(2).Select
+ActiveWindow.FreezePanes = True
+
+
+
+MsgBox "Processo finalizado"
+End Sub
+
+Function ReplaceAcentos(txt As String, comAcento As String, semAcento As String) As String
+
+    Dim i As Long
+
+    For i = 1 To Len(comAcento)
+        txt = Replace(txt, Mid(comAcento, i, 1), Mid(semAcento, i, 1))
+    Next i
+
+    ReplaceAcentos = txt
+
+End Function
